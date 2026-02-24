@@ -1,0 +1,310 @@
+!pip install streamlit pyngrok --quiet
+
+########################################################################################################################################
+%%writefile app.py
+import streamlit as st
+import sqlite3
+import hashlib
+import random
+import smtplib
+from email.mime.text import MIMEText
+
+
+st.set_page_config(page_title="PolicyNav", layout="centered")
+
+
+def get_connection():
+    return sqlite3.connect("users.db", check_same_thread=False)
+
+def create_table():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            email TEXT UNIQUE,
+            password TEXT,
+            security_question TEXT,
+            security_answer TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+create_table()
+
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def send_otp_email(receiver_email, otp):
+    sender_email = "policynavinfo@gmail.com"
+    sender_password = "olbj ksit ozpt nbun"
+
+    msg = MIMEText(f"Your OTP is: {otp}")
+    msg["Subject"] = "PolicyNav OTP Verification"
+    msg["From"] = sender_email
+    msg["To"] = receiver_email
+
+    server = smtplib.SMTP("smtp.gmail.com", 587)
+    server.starttls()
+    server.login(sender_email, sender_password)
+    server.send_message(msg)
+    server.quit()
+
+
+if "page" not in st.session_state:
+    st.session_state.page = "login"
+
+if "otp_verified" not in st.session_state:
+    st.session_state.otp_verified = False
+
+
+def register():
+    st.title("Register")
+
+    username = st.text_input("Username")
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+
+    question = st.selectbox("Security Question", [
+        "Your first school name?",
+        "Your pet name?",
+        "Your favorite teacher?"
+    ])
+    answer = st.text_input("Security Answer")
+
+    if st.button("Register"):
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                INSERT INTO users (username, email, password, security_question, security_answer)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                username,
+                email,
+                hash_password(password),
+                question,
+                answer.lower()
+            ))
+            conn.commit()
+            st.success("Registration Successful")
+        except:
+            st.error("Username or Email already exists")
+        conn.close()
+
+    if st.button("Back to Login"):
+        st.session_state.page = "login"
+        st.rerun()
+
+def login():
+    st.title("Login")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT email FROM users
+            WHERE username=? AND password=?
+        """, (username, hash_password(password)))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            otp = str(random.randint(100000, 999999))
+            st.session_state.otp = otp
+            st.session_state.user_email = user[0]
+            st.session_state.username = username
+            st.session_state.otp_verified = False
+
+            send_otp_email(user[0], otp)
+
+            st.session_state.page = "otp"
+            st.rerun()
+        else:
+            st.error("Invalid Credentials")
+
+    if st.button("Register"):
+        st.session_state.page = "register"
+        st.rerun()
+
+    if st.button("Forgot Password"):
+        st.session_state.page = "forgot"
+        st.rerun()
+
+
+def otp_page():
+    st.title("OTP Verification")
+
+    entered_otp = st.text_input("Enter OTP")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("Verify OTP"):
+            if entered_otp == st.session_state.get("otp"):
+                st.session_state.otp_verified = True
+                st.session_state.page = "policy"
+                st.rerun()
+            else:
+                st.error("Incorrect OTP")
+
+    with col2:
+        if st.button("Resend OTP"):
+            new_otp = str(random.randint(100000, 999999))
+            st.session_state.otp = new_otp
+            send_otp_email(st.session_state.user_email, new_otp)
+            st.success("New OTP Sent")
+            st.stop()
+
+
+def forgot_password():
+    st.title("Forgot Password")
+
+    username = st.text_input("Enter Username")
+
+    method = st.radio("Reset Method", ["Security Question", "Email OTP"])
+
+    if method == "Security Question":
+
+        if st.button("Load Question"):
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT security_question FROM users WHERE username=?", (username,))
+            data = cursor.fetchone()
+            conn.close()
+
+            if data:
+                st.session_state.loaded_question = data[0]
+            else:
+                st.error("User Not Found")
+
+        if "loaded_question" in st.session_state:
+            st.write("Question:", st.session_state.loaded_question)
+            answer = st.text_input("Answer")
+            new_pass = st.text_input("New Password", type="password")
+
+            if st.button("Reset Password"):
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT security_answer FROM users WHERE username=?", (username,))
+                real = cursor.fetchone()
+
+                if real and answer.lower() == real[0]:
+                    cursor.execute("UPDATE users SET password=? WHERE username=?",
+                                   (hash_password(new_pass), username))
+                    conn.commit()
+                    st.success("Password Reset Successful")
+                else:
+                    st.error("Wrong Answer")
+                conn.close()
+
+    else:
+        if st.button("Send OTP"):
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT email FROM users WHERE username=?", (username,))
+            data = cursor.fetchone()
+            conn.close()
+
+            if data:
+                otp = str(random.randint(100000, 999999))
+                st.session_state.reset_otp = otp
+                st.session_state.reset_user = username
+                send_otp_email(data[0], otp)
+                st.success("OTP Sent")
+
+        entered = st.text_input("Enter OTP")
+        new_pass = st.text_input("New Password", type="password")
+
+        if st.button("Reset via OTP"):
+            if entered == st.session_state.get("reset_otp"):
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("UPDATE users SET password=? WHERE username=?",
+                               (hash_password(new_pass), st.session_state.reset_user))
+                conn.commit()
+                conn.close()
+                st.success("Password Reset Successful")
+            else:
+                st.error("Invalid OTP")
+
+    if st.button("Back to Login"):
+        st.session_state.page = "login"
+        st.rerun()
+
+def policy_page():
+    if not st.session_state.get("otp_verified"):
+        st.session_state.page = "login"
+        st.rerun()
+
+    st.title("Policy Readability Analysis")
+
+    text = st.text_area("Paste Policy Text Here")
+
+    if st.button("Analyze"):
+
+        word_count = len(text.split())
+        character_count = len(text)
+        space_count = text.count(" ")
+        sentence_count = text.count(".") + text.count("!") + text.count("?")
+        paragraph_count = len([p for p in text.split("\n") if p.strip() != ""])
+
+        st.subheader("Readability Metrics")
+        st.write("Word Count:", word_count)
+        st.write("Character Count (including spaces):", character_count)
+        st.write("Space Count:", space_count)
+        st.write("Sentence Count:", sentence_count)
+        st.write("Paragraph Count:", paragraph_count)
+
+    if st.button("Logout"):
+        st.session_state.clear()
+        st.session_state.page = "login"
+        st.rerun()
+
+
+if st.session_state.page == "login":
+    login()
+
+elif st.session_state.page == "register":
+    register()
+
+elif st.session_state.page == "otp":
+    otp_page()
+
+elif st.session_state.page == "forgot":
+    forgot_password()
+
+elif st.session_state.page == "policy":
+    policy_page()
+
+#########################################################################################################################################
+from pyngrok import ngrok
+import subprocess
+import time
+import os
+
+os.system("pkill -f streamlit")
+os.system("pkill -f ngrok")
+
+
+ngrok.set_auth_token("39a4x1psf2OeZ6NKducAQtIOt7S_3MqLMV7X9s67sGx5wVmBi")
+
+
+process = subprocess.Popen(
+    ["streamlit", "run", "app.py", "--server.port", "8501"]
+)
+
+
+time.sleep(5)
+
+
+public_url = ngrok.connect(8501)
+print("🚀 App Live At:")
+print(public_url)

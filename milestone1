@@ -1,0 +1,112 @@
+!pip install streamlit pyngrok
+
+############################################################################################################################
+%%writefile app.py
+import streamlit as st
+import sqlite3
+
+st.set_page_config(
+    page_title="PolicyNav Login",
+    page_icon="🔐",
+    layout="centered"
+)
+
+
+# ---------- DATABASE ----------
+def get_connection():
+    return sqlite3.connect("users.db", check_same_thread=False)
+
+def create_table():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+# ---------- REGISTER ----------
+def register():
+    st.subheader("Register 📝")
+    username = st.text_input("Username")
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Register"):
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+                (username, email, password)
+            )
+            conn.commit()
+            st.success("Registered Successfully 🎉")
+            st.snow()
+        except:
+            st.error("Username or Email already exists ❌")
+        conn.close()
+
+# ---------- LOGIN ----------
+def login():
+    st.subheader("Login 🔐")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM users WHERE username=? AND password=?",
+            (username, password)
+        )
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            st.success("Login Successful 🚀")
+            st.snow()
+        else:
+            st.error("Invalid Credentials ❌")
+
+# ---------- MAIN ----------
+def main():
+    st.title("PolicyNav Login System 💻")
+    create_table()
+
+    menu = ["Login", "Register"]
+    choice = st.sidebar.selectbox("Menu", menu)
+
+    if choice == "Login":
+        login()
+    else:
+        register()
+
+if __name__ == "__main__":
+    main()
+
+#########################################################################################################
+from pyngrok import ngrok
+import subprocess
+import time
+
+ngrok.set_auth_token("39a4x1psf2OeZ6NKducAQtIOt7S_3MqLMV7X9s67sGx5wVmBi")
+
+!pkill -f streamlit
+!pkill -f ngrok
+
+process = subprocess.Popen(
+    ["streamlit", "run", "app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
+)
+
+time.sleep(5)
+
+public_url = ngrok.connect(8501)
+print("🚀 App Live At:")
+print(public_url)

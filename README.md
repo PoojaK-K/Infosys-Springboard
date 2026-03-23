@@ -287,32 +287,37 @@ EMAIL_APP_PASSWORD=your_app_password
 ### 📊 Dashboard
 <img width="1918" height="876" alt="image" src="https://github.com/user-attachments/assets/2626bc19-7753-4931-a2ad-6d1157e6c3ce" />
 
-![Dashboard](images/dashboard.png)
+
 
 
 
 ### 🔎 RAG Search
-![RAG Search](images/rag_search.png)
+<img width="1918" height="876" alt="image" src="https://github.com/user-attachments/assets/7d17b9f7-5e26-409c-9722-f39020f0fe53" />
+
 
 
 
 ### 🌐 Knowledge Graph
-![Knowledge Graph](images/knowledge_graph.png)
+<img width="1918" height="877" alt="image" src="https://github.com/user-attachments/assets/4268356b-f999-49b9-a9da-6acea54e6a88" />
+
 
 
 
 ### 🕘 History
-![History](images/history.png)
+<img width="1918" height="903" alt="image" src="https://github.com/user-attachments/assets/da9dd660-40a5-4a42-8501-9155fc55b5be" />
+
 
 
 
 ### 🛠 Admin Panel
-![Admin](images/admin.png)
+<img width="1915" height="910" alt="image" src="https://github.com/user-attachments/assets/9e94412c-ce78-486d-849b-911df9a980af" />
+
 
 
 
 ### 🧠 Summarization
-![Summarization](images/summarization.png)
+<img width="1918" height="906" alt="image" src="https://github.com/user-attachments/assets/ca9853ea-d2c1-4df8-a61a-1c3356d6e50a" />
+
 
 
 

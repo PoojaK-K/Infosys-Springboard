@@ -104,18 +104,17 @@ PolicyNav uses Facebook's **NLLB-200** (No Language Left Behind) model for high-
 Monolithic AI system integrating NLP pipelines, vector search, and visualization tools.
 ## 🧩 Architecture Diagram
 
-<p align="center">
-  <img src="images/architecture.png" width="900"/>
-  <br/>
+<img width="1536" height="864" alt="image" src="https://github.com/user-attachments/assets/e0bca525-addd-437a-8c77-e69b3471381c" />
+ <br/>
   <em>Figure: End-to-end system architecture of PolicyNav</em>
 </p>
 
 
 
-## 🗄 Database Schema
 
-<p align="center">
-  <img src="images/database_schema.png" width="900"/>
+## 🗄 Database Schema
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/1ca5cba9-9259-40ad-bca0-7e5dde076288" />
+
   <br/>
   <em>Figure: Entity Relationship Diagram (ERD) of the system database</em>
 </p>

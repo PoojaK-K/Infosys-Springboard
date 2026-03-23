@@ -285,6 +285,8 @@ EMAIL_APP_PASSWORD=your_app_password
 ## 📸 Screenshots
 
 ### 📊 Dashboard
+<img width="1918" height="876" alt="image" src="https://github.com/user-attachments/assets/2626bc19-7753-4931-a2ad-6d1157e6c3ce" />
+
 ![Dashboard](images/dashboard.png)
 
 
